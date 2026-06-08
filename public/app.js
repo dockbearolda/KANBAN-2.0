@@ -5,7 +5,7 @@
 // --- Étapes : groupes pour les séparateurs (3 blocs). ----------------------
 const STAGE_GROUPS = [
   [
-    { slug: 'demande', label: 'Commande' },
+    { slug: 'demande', label: 'Demande' },
     { slug: 'devis_en_cours', label: 'Devis en cours' },
     { slug: 'devis_accepte', label: 'Devis accepté' },
   ],
@@ -260,9 +260,16 @@ function buildRow(r) {
   tr.appendChild(cellDays(r));
   // état
   tr.appendChild(cellStatus(r));
-  // suppression
+  // actions de fin de ligne : dupliquer + supprimer (révélées au survol)
   const tdDel = document.createElement('td');
   tdDel.className = 'col-del';
+  const dup = document.createElement('button');
+  dup.className = 'dup-btn';
+  dup.type = 'button';
+  dup.title = 'Dupliquer cette commande';
+  dup.setAttribute('aria-label', 'Dupliquer cette commande');
+  dup.innerHTML = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>';
+  dup.addEventListener('click', () => duplicateRow(r));
   const del = document.createElement('button');
   del.className = 'del-btn';
   del.type = 'button';
@@ -270,6 +277,7 @@ function buildRow(r) {
   del.setAttribute('aria-label', 'Supprimer cette commande');
   del.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>';
   del.addEventListener('click', () => removeRow(r));
+  tdDel.appendChild(dup);
   tdDel.appendChild(del);
   tr.appendChild(tdDel);
 
@@ -556,6 +564,7 @@ const STATUS_CLASS = {
   'Bloqué': 's-bloque',
   'Terminé': 's-termine',
 };
+const STATUS_OPTIONS = ['À traiter', 'En attente client', 'Validé', 'Bloqué', 'Terminé'];
 
 function cellStatus(r) {
   const td = document.createElement('td');
@@ -568,34 +577,77 @@ function cellStatus(r) {
     if (!val) pill.classList.add('placeholder');
   };
   render();
-  pill.title = 'cliquer pour éditer';
-  pill.addEventListener('click', () => {
-    const input = document.createElement('input');
-    input.className = 'cell-input';
-    input.setAttribute('list', 'statusOptions');
-    input.value = r.status || '';
-    input.placeholder = 'état';
-    td.replaceChild(input, pill);
-    input.focus();
-    let done = false;
-    const commit = () => {
-      if (done) return; done = true;
-      const val = input.value.trim() === '' ? null : input.value.trim();
-      const prev = r.status;
-      if (val !== prev) {
-        r.status = val; render(); td.replaceChild(pill, input);
-        api('PATCH', `/api/requests/${r.id}`, { status: val }).catch((err) => {
-          r.status = prev; render(); reportError(err);
-        });
-      } else {
-        td.replaceChild(pill, input);
-      }
-    };
-    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { done = true; td.replaceChild(pill, input); } });
-    input.addEventListener('blur', commit);
+  pill.title = 'cliquer pour choisir un état';
+  pill.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (openStatusMenu) { closeStatusMenu(); return; }
+    showStatusMenu(r, pill, render);
   });
   td.appendChild(pill);
   return td;
+}
+
+// Menu d'état : au clic, tous les choix apparaissent directement ; on sélectionne.
+let openStatusMenu = null;
+function closeStatusMenu() {
+  if (!openStatusMenu) return;
+  openStatusMenu.remove();
+  openStatusMenu = null;
+  document.removeEventListener('pointerdown', onStatusDocDown, true);
+  document.removeEventListener('keydown', onStatusKey, true);
+}
+function onStatusDocDown(e) {
+  if (openStatusMenu && !openStatusMenu.contains(e.target) && !e.target.closest('.status-pill')) closeStatusMenu();
+}
+function onStatusKey(e) { if (e.key === 'Escape') closeStatusMenu(); }
+
+function setStatus(r, val, render) {
+  const prev = r.status || null;
+  if (val === prev) return;
+  r.status = val;
+  render();
+  api('PATCH', `/api/requests/${r.id}`, { status: val }).catch((err) => {
+    r.status = prev; render(); reportError(err);
+  });
+}
+
+function showStatusMenu(r, pill, render) {
+  closeStatusMenu();
+  const menu = document.createElement('div');
+  menu.className = 'status-menu';
+  for (const opt of STATUS_OPTIONS) {
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'status-menu-item' + (r.status === opt ? ' current' : '');
+    const p = document.createElement('span');
+    p.className = 'status-pill ' + STATUS_CLASS[opt];
+    p.textContent = opt;
+    item.appendChild(p);
+    item.addEventListener('click', () => { setStatus(r, opt, render); closeStatusMenu(); });
+    menu.appendChild(item);
+  }
+  const clear = document.createElement('button');
+  clear.type = 'button';
+  clear.className = 'status-menu-item clear';
+  clear.textContent = '— effacer —';
+  clear.addEventListener('click', () => { setStatus(r, null, render); closeStatusMenu(); });
+  menu.appendChild(clear);
+
+  document.body.appendChild(menu);
+  const pr = pill.getBoundingClientRect();
+  const mr = menu.getBoundingClientRect();
+  let top = pr.bottom + 4;
+  if (top + mr.height > window.innerHeight - 8) top = pr.top - mr.height - 4;
+  let left = pr.left;
+  if (left + mr.width > window.innerWidth - 8) left = window.innerWidth - mr.width - 8;
+  menu.style.top = Math.max(8, Math.round(top)) + 'px';
+  menu.style.left = Math.max(8, Math.round(left)) + 'px';
+
+  openStatusMenu = menu;
+  setTimeout(() => {
+    document.addEventListener('pointerdown', onStatusDocDown, true);
+    document.addEventListener('keydown', onStatusKey, true);
+  }, 0);
 }
 
 // --- Édition inline générique (texte/nombre) ------------------------------
@@ -651,6 +703,36 @@ async function removeRow(r) {
     await api('DELETE', `/api/requests/${r.id}`);
     rows = rows.filter((x) => x.id !== r.id);
     applySortAndRender();
+    await loadCounts();
+  } catch (err) { reportError(err); }
+}
+
+// Duplique une commande : crée une copie de tous ses champs (sans la position,
+// recalculée en bas de l'étape). La copie reste dans la même étape.
+async function duplicateRow(r) {
+  const body = {
+    stage: r.stage,
+    priority: r.priority,
+    client_type: r.client_type,
+    billing_company: r.billing_company,
+    contact_referent: r.contact_referent,
+    contact_phone: r.contact_phone,
+    contact_email: r.contact_email,
+    quantity: r.quantity,
+    product: r.product,
+    project_value: r.project_value,
+    description: r.description,
+    deadline: r.deadline ? String(r.deadline).slice(0, 10) : null,
+    status: r.status,
+  };
+  try {
+    const created = await api('POST', '/api/requests', body);
+    if (created.stage === currentStage) {
+      rows.push(created);
+      applySortAndRender();
+      const tr = $rows.querySelector(`tr[data-id="${created.id}"]`);
+      if (tr) tr.scrollIntoView({ block: 'nearest' });
+    }
     await loadCounts();
   } catch (err) { reportError(err); }
 }
