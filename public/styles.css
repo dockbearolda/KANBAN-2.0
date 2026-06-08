@@ -277,7 +277,14 @@ html, body {
 }
 
 /* poignée de glisser */
-.col-handle { width: 30px; }
+.col-handle { width: 50px; }
+.handle-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  height: 40px;
+}
 .handle {
   display: flex;
   align-items: center;
@@ -292,6 +299,72 @@ html, body {
 .handle:active { cursor: grabbing; }
 .handle svg { width: 14px; height: 14px; }
 tr:hover .handle { color: var(--text-2); }
+
+/* Icône contact : gris pâle si vide, bleu si renseigné. Aucune pollution. */
+.contact-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #c4c7cc;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: color 0.12s ease, background 0.12s ease;
+}
+.contact-btn:hover { color: var(--accent); background: var(--accent-soft); }
+.contact-btn.has-contact { color: var(--accent); }
+.contact-btn svg { display: block; }
+
+/* Popover contact */
+.contact-pop {
+  position: fixed;
+  z-index: 1100;
+  width: 230px;
+  background: #fff;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.contact-pop .cp-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.contact-pop .cp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--text-3);
+}
+.contact-pop input {
+  font: inherit;
+  font-size: 13px;
+  color: var(--text-1);
+  padding: 7px 9px;
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  background: #fff;
+}
+.contact-pop input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--focus-ring);
+}
+.contact-pop .cp-err {
+  font-size: 12px;
+  color: var(--danger);
+}
 
 /* étoiles priorité */
 .col-priority { width: 92px; }

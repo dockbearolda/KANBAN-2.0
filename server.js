@@ -39,6 +39,7 @@ app.use(basicAuth);
 // ---------------------------------------------------------------------------
 const PATCHABLE = [
   'stage', 'priority', 'client_type', 'billing_company', 'contact_referent',
+  'contact_phone', 'contact_email',
   'quantity', 'product', 'project_value', 'description', 'deadline', 'status', 'position',
 ];
 
@@ -76,6 +77,16 @@ function validateField(key, value) {
     case 'deadline': {
       if (value === '') return { ok: true, value: null };
       return { ok: true, value };
+    }
+    case 'contact_phone': {
+      const s = String(value).trim();
+      return { ok: true, value: s === '' ? null : s };
+    }
+    case 'contact_email': {
+      const s = String(value).trim();
+      if (s === '') return { ok: true, value: null };
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)) return { ok: false, error: 'email invalide' };
+      return { ok: true, value: s };
     }
     default:
       return { ok: true, value };

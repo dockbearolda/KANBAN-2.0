@@ -208,9 +208,12 @@ function buildRow(r) {
   const draft = isDraftRow(r);
   if (draft) tr.classList.add('is-draft');
 
-  // début de ligne : poignée draggable, ou bouton « + Ajouter » si brouillon
+  // début de ligne : poignée draggable (ou bouton « + Ajouter » si brouillon)
+  // + icône contact discret (téléphone / email), sans modifier le reste.
   const tdHandle = document.createElement('td');
   tdHandle.className = 'col-handle';
+  const handleCell = document.createElement('div');
+  handleCell.className = 'handle-cell';
   if (draft) {
     const add = document.createElement('button');
     add.className = 'add-btn';
@@ -222,13 +225,17 @@ function buildRow(r) {
       const first = tr.querySelector('.col-company input');
       if (first) first.focus();
     });
-    tdHandle.appendChild(add);
+    handleCell.appendChild(add);
   } else {
-    tdHandle.innerHTML = `<div class="handle" title="glisser pour déplacer">
-    <svg viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="3" r="1.4"/><circle cx="11" cy="3" r="1.4"/><circle cx="5" cy="8" r="1.4"/><circle cx="11" cy="8" r="1.4"/><circle cx="5" cy="13" r="1.4"/><circle cx="11" cy="13" r="1.4"/></svg>
-  </div>`;
-    attachDrag(tdHandle.querySelector('.handle'), tr, r);
+    const grip = document.createElement('div');
+    grip.className = 'handle';
+    grip.title = 'glisser pour déplacer';
+    grip.innerHTML = '<svg viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="3" r="1.4"/><circle cx="11" cy="3" r="1.4"/><circle cx="5" cy="8" r="1.4"/><circle cx="11" cy="8" r="1.4"/><circle cx="5" cy="13" r="1.4"/><circle cx="11" cy="13" r="1.4"/></svg>';
+    handleCell.appendChild(grip);
+    attachDrag(grip, tr, r);
   }
+  handleCell.appendChild(contactButton(r));
+  tdHandle.appendChild(handleCell);
   tr.appendChild(tdHandle);
 
   // priorité (étoiles)
@@ -267,6 +274,105 @@ function buildRow(r) {
   tr.appendChild(tdDel);
 
   return tr;
+}
+
+// --- Contact (téléphone / email) -------------------------------------------
+// Stocké sur la commande, jamais affiché en clair dans la ligne : on l'expose
+// via un petit icône (gris si vide, bleu si renseigné) ouvrant un popover.
+function hasContact(r) {
+  return !!((r.contact_phone && r.contact_phone !== '') || (r.contact_email && r.contact_email !== ''));
+}
+
+function contactButton(r) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'contact-btn' + (hasContact(r) ? ' has-contact' : '');
+  btn.title = hasContact(r) ? 'Contact renseigné — voir / éditer' : 'Ajouter un contact (téléphone, email)';
+  btn.setAttribute('aria-label', 'Contact');
+  btn.innerHTML = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10.5V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1.5"/><circle cx="12" cy="11" r="2.4"/><path d="M8.5 17a3.5 3.5 0 0 1 7 0"/></svg>';
+  btn.addEventListener('click', (e) => { e.stopPropagation(); openContactPopover(r, btn); });
+  return btn;
+}
+
+let openContactPop = null;
+function closeContactPopover(commit) {
+  if (!openContactPop) return;
+  const { pop, commitAll } = openContactPop;
+  if (commit !== false) commitAll();
+  pop.remove();
+  document.removeEventListener('pointerdown', onContactDocDown, true);
+  document.removeEventListener('keydown', onContactKey, true);
+  openContactPop = null;
+}
+function onContactDocDown(e) {
+  if (openContactPop && !openContactPop.pop.contains(e.target) && !e.target.closest('.contact-btn')) {
+    closeContactPopover();
+  }
+}
+function onContactKey(e) { if (e.key === 'Escape') closeContactPopover(false); }
+
+function openContactPopover(r, anchor) {
+  // re-clic sur le même bouton = fermeture
+  if (openContactPop && openContactPop.id === r.id) { closeContactPopover(); return; }
+  closeContactPopover();
+
+  const pop = document.createElement('div');
+  pop.className = 'contact-pop';
+  pop.innerHTML = `
+    <div class="cp-title">Contact</div>
+    <label class="cp-field">Téléphone
+      <input type="tel" class="cp-phone" placeholder="06 12 34 56 78" autocomplete="tel" />
+    </label>
+    <label class="cp-field">Email
+      <input type="email" class="cp-email" placeholder="nom@exemple.fr" autocomplete="email" />
+    </label>
+    <div class="cp-err" hidden></div>`;
+  const phone = pop.querySelector('.cp-phone');
+  const email = pop.querySelector('.cp-email');
+  const err = pop.querySelector('.cp-err');
+  phone.value = r.contact_phone || '';
+  email.value = r.contact_email || '';
+
+  const save = (field, inputEl) => {
+    const raw = inputEl.value.trim();
+    const val = raw === '' ? null : raw;
+    if (val === (r[field] || null)) return;
+    const prev = r[field];
+    r[field] = val;
+    api('PATCH', `/api/requests/${r.id}`, { [field]: val })
+      .then(() => {
+        anchor.classList.toggle('has-contact', hasContact(r));
+        anchor.title = hasContact(r) ? 'Contact renseigné — voir / éditer' : 'Ajouter un contact (téléphone, email)';
+        err.hidden = true;
+      })
+      .catch((e2) => {
+        r[field] = prev;
+        err.textContent = e2.message || 'Erreur';
+        err.hidden = false;
+      });
+  };
+  const commitAll = () => { save('contact_phone', phone); save('contact_email', email); };
+
+  phone.addEventListener('change', () => save('contact_phone', phone));
+  email.addEventListener('change', () => save('contact_email', email));
+
+  document.body.appendChild(pop);
+  // positionnement sous l'icône, en restant dans la fenêtre
+  const ar = anchor.getBoundingClientRect();
+  const pr = pop.getBoundingClientRect();
+  let left = ar.left;
+  if (left + pr.width > window.innerWidth - 8) left = window.innerWidth - pr.width - 8;
+  let top = ar.bottom + 6;
+  if (top + pr.height > window.innerHeight - 8) top = ar.top - pr.height - 6;
+  pop.style.left = Math.max(8, Math.round(left)) + 'px';
+  pop.style.top = Math.max(8, Math.round(top)) + 'px';
+
+  openContactPop = { id: r.id, pop, commitAll };
+  setTimeout(() => {
+    document.addEventListener('pointerdown', onContactDocDown, true);
+    document.addEventListener('keydown', onContactKey, true);
+  }, 0);
+  phone.focus();
 }
 
 // --- Cellules ---------------------------------------------------------------

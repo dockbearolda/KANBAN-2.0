@@ -58,6 +58,14 @@ async function init() {
   const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
   await pool.query(schema);
 
+  // Migration : colonnes contact ajoutées après coup sur les bases existantes
+  // (CREATE TABLE IF NOT EXISTS n'ajoute pas de colonnes à une table déjà créée).
+  for (const col of ['contact_phone', 'contact_email']) {
+    try {
+      await pool.query(`ALTER TABLE requests ADD COLUMN IF NOT EXISTS ${col} text`);
+    } catch (_) { /* pg-mem local : colonnes déjà présentes via le schéma */ }
+  }
+
   // Seed : si la table est vide, on insère quelques demandes d'exemple
   // réparties sur plusieurs étapes pour démontrer le pipeline.
   const { rows } = await pool.query('SELECT COUNT(*)::int AS n FROM requests');

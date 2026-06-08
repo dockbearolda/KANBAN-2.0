@@ -9,6 +9,8 @@ CREATE TABLE IF NOT EXISTS requests (
   client_type     text DEFAULT 'pro',
   billing_company text,
   contact_referent text,
+  contact_phone   text,
+  contact_email   text,
   quantity        int,
   product         text,
   project_value   numeric(12,2),
