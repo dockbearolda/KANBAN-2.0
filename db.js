@@ -6,7 +6,7 @@ const { Pool } = require('pg');
 
 // Liste canonique des étapes du pipeline (slug), dans l'ordre exact.
 const STAGES = [
-  { slug: 'demande', label: 'Demande' },
+  { slug: 'demande', label: 'Commande' },
   { slug: 'devis_en_cours', label: 'Devis en cours' },
   { slug: 'devis_accepte', label: 'Devis accepté' },
   { slug: 'prod_dtf', label: 'Production DTF' },
@@ -17,7 +17,7 @@ const STAGES = [
   { slug: 'prod_autre', label: 'Production Autre' },
   { slug: 'facturation', label: 'Facturation' },
   { slug: 'archive', label: 'Archivé' },
-  { slug: 'maquette_fiverr', label: 'Demande Maquette Fiverr' },
+  { slug: 'maquette_fiverr', label: 'Commande Maquette Fiverr' },
   { slug: 'toptex', label: 'Toptex' },
 ];
 

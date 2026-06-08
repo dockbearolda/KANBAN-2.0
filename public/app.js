@@ -1,11 +1,11 @@
 // ===========================================================================
-// Atelier OLDA — cockpit frontend (vanilla ES module, aucun build)
+// Planning OLDA — frontend (vanilla ES module, aucun build)
 // ===========================================================================
 
 // --- Étapes : groupes pour les séparateurs (3 blocs). ----------------------
 const STAGE_GROUPS = [
   [
-    { slug: 'demande', label: 'Demande' },
+    { slug: 'demande', label: 'Commande' },
     { slug: 'devis_en_cours', label: 'Devis en cours' },
     { slug: 'devis_accepte', label: 'Devis accepté' },
   ],
@@ -20,7 +20,7 @@ const STAGE_GROUPS = [
   [
     { slug: 'facturation', label: 'Facturation' },
     { slug: 'archive', label: 'Archivé' },
-    { slug: 'maquette_fiverr', label: 'Demande Maquette Fiverr' },
+    { slug: 'maquette_fiverr', label: 'Commande Maquette Fiverr' },
     { slug: 'toptex', label: 'Toptex' },
   ],
 ];
@@ -123,7 +123,7 @@ function applySortAndRender() {
     });
   }
   renderRows(data);
-  $stageCount.textContent = data.length ? `${data.length} demande${data.length > 1 ? 's' : ''}` : '';
+  $stageCount.textContent = data.length ? `${data.length} commande${data.length > 1 ? 's' : ''}` : '';
 }
 
 function cmpDeadline(a, b) {
@@ -133,12 +133,38 @@ function cmpDeadline(a, b) {
   return a < b ? -1 : a > b ? 1 : 0;
 }
 
-function daysLeft(deadline) {
+// Parse une échéance en date locale (minuit). Gère l'ISO renvoyé par la DB
+// (« 2026-06-11T00:00:00.000Z ») et la saisie « jj/mm/aaaa ». null si invalide.
+function parseDeadline(deadline) {
   if (!deadline) return null;
+  const s = String(deadline).trim();
+  if (!s) return null;
+  let y, m, d;
+  if (s.includes('/')) {
+    const p = s.split('/');
+    if (p.length !== 3) return null;
+    d = +p[0]; m = +p[1]; y = +p[2];
+  } else {
+    const p = s.slice(0, 10).split('-'); // « aaaa-mm-jj » (ignore l'heure)
+    if (p.length !== 3) return null;
+    y = +p[0]; m = +p[1]; d = +p[2];
+  }
+  if (![y, m, d].every(Number.isFinite)) return null;
+  const date = new Date(y, m - 1, d);
+  // rejette les valeurs hors-bornes (ex. 32/13) qui « débordent » silencieusement
+  if (Number.isNaN(date.getTime()) ||
+      date.getFullYear() !== y || date.getMonth() !== m - 1 || date.getDate() !== d) {
+    return null;
+  }
+  return date;
+}
+
+function daysLeft(deadline) {
+  const d = parseDeadline(deadline);
+  if (!d) return null;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const d = new Date(deadline + 'T00:00:00');
-  return Math.round((d - today) / 86400000);
+  return Math.ceil((d - today) / 86400000);
 }
 
 function cmp(a, b, key) {
@@ -168,17 +194,41 @@ function renderRows(data) {
   updateSortArrows();
 }
 
+// Une ligne est un « brouillon d'ajout » tant qu'aucun champ de contenu n'est
+// renseigné : on l'affiche alors comme un formulaire, pas comme une donnée.
+function isDraftRow(r) {
+  const fields = ['billing_company', 'contact_referent', 'quantity', 'product',
+    'project_value', 'description', 'deadline', 'status'];
+  return fields.every((k) => r[k] === null || r[k] === undefined || r[k] === '');
+}
+
 function buildRow(r) {
   const tr = document.createElement('tr');
   tr.dataset.id = r.id;
+  const draft = isDraftRow(r);
+  if (draft) tr.classList.add('is-draft');
 
-  // poignée draggable
+  // début de ligne : poignée draggable, ou bouton « + Ajouter » si brouillon
   const tdHandle = document.createElement('td');
   tdHandle.className = 'col-handle';
-  tdHandle.innerHTML = `<div class="handle" title="glisser pour déplacer">
+  if (draft) {
+    const add = document.createElement('button');
+    add.className = 'add-btn';
+    add.type = 'button';
+    add.title = 'Ajouter — remplir cette ligne';
+    add.setAttribute('aria-label', 'Ajouter une commande');
+    add.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>';
+    add.addEventListener('click', () => {
+      const first = tr.querySelector('.col-company input');
+      if (first) first.focus();
+    });
+    tdHandle.appendChild(add);
+  } else {
+    tdHandle.innerHTML = `<div class="handle" title="glisser pour déplacer">
     <svg viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="3" r="1.4"/><circle cx="11" cy="3" r="1.4"/><circle cx="5" cy="8" r="1.4"/><circle cx="11" cy="8" r="1.4"/><circle cx="5" cy="13" r="1.4"/><circle cx="11" cy="13" r="1.4"/></svg>
   </div>`;
-  attachDrag(tdHandle.querySelector('.handle'), tr, r);
+    attachDrag(tdHandle.querySelector('.handle'), tr, r);
+  }
   tr.appendChild(tdHandle);
 
   // priorité (étoiles)
@@ -209,8 +259,9 @@ function buildRow(r) {
   const del = document.createElement('button');
   del.className = 'del-btn';
   del.type = 'button';
-  del.textContent = '×';
-  del.title = 'Supprimer';
+  del.title = 'Supprimer cette commande';
+  del.setAttribute('aria-label', 'Supprimer cette commande');
+  del.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>';
   del.addEventListener('click', () => removeRow(r));
   tdDel.appendChild(del);
   tr.appendChild(tdDel);
@@ -291,7 +342,8 @@ function cellMoney(r, field) {
   input.inputMode = 'decimal';
   const fmt = () => { input.value = r[field] != null ? formatMoney(r[field]) : ''; };
   fmt();
-  input.placeholder = '€';
+  input.classList.add('val-cell');
+  input.placeholder = '—'; // valeur vide → tiret gris clair (cf. .val-cell::placeholder)
   input.addEventListener('focus', () => {
     input.value = r[field] != null ? String(r[field]) : '';
   });
@@ -314,22 +366,52 @@ function cellMoney(r, field) {
 
 function cellDate(r, field) {
   const td = document.createElement('td');
-  const input = document.createElement('input');
-  input.className = 'cell-input';
-  input.type = 'date';
-  input.value = r[field] ? r[field].slice(0, 10) : '';
-  input.addEventListener('change', () => {
+
+  const commit = (input) => {
     const val = input.value === '' ? null : input.value;
+    if (val === (r[field] || null)) return; // pas de changement
     const prev = r[field];
     r[field] = val;
     // re-render badge jours restant
-    const td2 = input.closest('tr').querySelector('.col-days');
+    const td2 = td.closest('tr').querySelector('.col-days');
     if (td2) td2.replaceWith(cellDays(r));
     api('PATCH', `/api/requests/${r.id}`, { deadline: val }).catch((err) => {
-      r[field] = prev; input.value = prev ? prev.slice(0, 10) : ''; reportError(err);
+      r[field] = prev; reportError(err);
     });
-  });
-  td.appendChild(input);
+  };
+
+  // Affichage « vide » : un simple tiret gris clair (pas de « jj/mm/aaaa »).
+  const showDash = () => {
+    td.innerHTML = '';
+    const dash = document.createElement('span');
+    dash.className = 'date-empty';
+    dash.textContent = '—';
+    dash.title = 'cliquer pour définir une échéance';
+    dash.addEventListener('click', () => showInput(true));
+    td.appendChild(dash);
+  };
+
+  // Affichage / édition via l'input date natif.
+  const showInput = (openPicker) => {
+    td.innerHTML = '';
+    const input = document.createElement('input');
+    input.className = 'cell-input';
+    input.type = 'date';
+    input.value = r[field] ? r[field].slice(0, 10) : '';
+    input.addEventListener('change', () => commit(input));
+    input.addEventListener('blur', () => {
+      commit(input);
+      if (!input.value) showDash(); // revient au tiret si laissé vide
+    });
+    td.appendChild(input);
+    if (openPicker) {
+      input.focus();
+      if (typeof input.showPicker === 'function') { try { input.showPicker(); } catch (_) {} }
+    }
+  };
+
+  if (r[field]) showInput(false);
+  else showDash();
   return td;
 }
 
@@ -337,12 +419,24 @@ function cellDays(r) {
   const td = document.createElement('td');
   td.className = 'col-days';
   const d = daysLeft(r.deadline);
-  if (d === null) { td.innerHTML = '<span class="days-badge" style="visibility:hidden">—</span>'; return td; }
-  let cls = 'green';
-  if (d <= 0) cls = 'red';
-  else if (d <= 7) cls = 'orange';
-  const label = d <= 0 ? (d === 0 ? "aujourd'hui" : `${d} j`) : `${d} j`;
   const badge = document.createElement('span');
+  if (d === null) {
+    badge.className = 'days-badge muted';
+    badge.textContent = '—';
+    td.appendChild(badge);
+    return td;
+  }
+  let cls, label;
+  if (d > 0) {
+    cls = d <= 7 ? 'orange' : 'green';
+    label = `${d} j`;
+  } else if (d === 0) {
+    cls = 'orange';
+    label = "Aujourd'hui";
+  } else {
+    cls = 'red';
+    label = `En retard de ${-d} j`;
+  }
   badge.className = `days-badge ${cls}`;
   badge.textContent = label;
   td.appendChild(badge);
@@ -446,8 +540,7 @@ $btnNew.addEventListener('click', async () => {
 
 // --- Suppression -----------------------------------------------------------
 async function removeRow(r) {
-  const label = r.billing_company || r.product || 'cette demande';
-  if (!confirm(`Supprimer « ${label} » ?`)) return;
+  if (!confirm('Supprimer cette commande définitivement ?')) return;
   try {
     await api('DELETE', `/api/requests/${r.id}`);
     rows = rows.filter((x) => x.id !== r.id);
@@ -471,9 +564,13 @@ function attachDrag(handle, tr, r) {
       pointerId: e.pointerId, active: false, ghost: null, grabDX: 0, grabDY: 0,
     };
     try { handle.setPointerCapture(e.pointerId); } catch (_) {}
-    handle.addEventListener('pointermove', onDragMove);
-    handle.addEventListener('pointerup', onDragEnd);
-    handle.addEventListener('pointercancel', onDragEnd);
+    // Écouteurs sur window (pas sur la poignée) : on reçoit ainsi tous les
+    // pointermove/up quel que soit l'élément sous le curseur, même quand il a
+    // quitté la poignée (survol de la sidebar) ou si la capture de pointeur est
+    // perdue lors du re-parentage de la ligne pendant le réordonnancement.
+    window.addEventListener('pointermove', onDragMove);
+    window.addEventListener('pointerup', onDragEnd);
+    window.addEventListener('pointercancel', onDragEnd);
   });
 }
 
@@ -485,7 +582,7 @@ function beginDrag() {
   dragState.grabDY = startY - rect.top;
   const ghost = document.createElement('div');
   ghost.className = 'drag-ghost';
-  ghost.textContent = r.billing_company || r.product || 'demande';
+  ghost.textContent = r.billing_company || r.product || 'commande';
   ghost.style.width = rect.width + 'px';
   document.body.appendChild(ghost);
   dragState.ghost = ghost;
@@ -522,9 +619,9 @@ function onDragMove(e) {
 async function onDragEnd(e) {
   if (!dragState) return;
   const ds = dragState;
-  ds.handle.removeEventListener('pointermove', onDragMove);
-  ds.handle.removeEventListener('pointerup', onDragEnd);
-  ds.handle.removeEventListener('pointercancel', onDragEnd);
+  window.removeEventListener('pointermove', onDragMove);
+  window.removeEventListener('pointerup', onDragEnd);
+  window.removeEventListener('pointercancel', onDragEnd);
   try { ds.handle.releasePointerCapture(ds.pointerId); } catch (_) {}
 
   if (!ds.active) { dragState = null; return; } // simple clic, pas un drag
@@ -627,7 +724,9 @@ function formatMoney(v) {
   const n = Number(v);
   if (Number.isNaN(n)) return '';
   const rounded = Number.isInteger(n) ? n : Math.round(n * 100) / 100;
-  return rounded.toLocaleString('fr-FR') + ' €';
+  // séparateur de milliers + espace avant € = espace insécable (U+00A0), € après le montant
+  const num = rounded.toLocaleString('fr-FR').replace(/[\s  ]/g, ' ');
+  return num + ' €';
 }
 
 function escapeHtml(s) {

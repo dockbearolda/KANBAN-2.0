@@ -1,5 +1,5 @@
 /* ===========================================================================
-   Atelier OLDA — design system
+   Planning OLDA — design system
    Apple-minimal + Google Sheets amélioré. Blanc, un seul accent, fin, spacieux.
    =========================================================================== */
 
@@ -196,6 +196,38 @@ html, body {
 .grid tbody tr:hover { background: rgba(0, 0, 0, 0.018); }
 .grid tbody tr.dragging { opacity: 0.4; }
 
+/* Ligne brouillon : se lit comme un formulaire d'ajout, pas comme une donnée */
+.grid tbody tr.is-draft,
+.grid tbody tr.is-draft:hover { background: var(--accent-soft); }
+.grid tbody tr.is-draft td {
+  border-top: 1px dashed #b9cdec;
+  border-bottom: 1px dashed #b9cdec;
+}
+.grid tbody tr.is-draft td:first-child { border-left: 1px dashed #b9cdec; }
+.grid tbody tr.is-draft td:last-child { border-right: 1px dashed #b9cdec; }
+/* placeholders plus clairs dans le formulaire d'ajout */
+.grid tbody tr.is-draft .cell-input::placeholder,
+.grid tbody tr.is-draft .cell-display.placeholder,
+.grid tbody tr.is-draft .status-pill.placeholder { color: #b0b4bb; }
+
+/* bouton « + Ajouter » en début de ligne brouillon */
+.add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin: 9px auto;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  transition: filter 0.12s ease;
+}
+.add-btn:hover { filter: brightness(1.08); }
+
 /* cellules */
 .cell {
   padding: 8px 12px;
@@ -220,6 +252,8 @@ html, body {
   font-family: inherit;
 }
 .cell-input::placeholder { color: #86868b; }
+/* valeur du projet vide → tiret « — » gris clair */
+.cell-input.val-cell::placeholder { color: #b0b4bb; opacity: 1; }
 .cell-input.num { text-align: right; font-variant-numeric: tabular-nums; }
 .cell-input:focus {
   outline: none;
@@ -231,6 +265,16 @@ html, body {
 }
 .cell-display { cursor: text; }
 .cell-display.placeholder { color: var(--text-3); }
+
+/* échéance vide : tiret gris clair à la place de « jj/mm/aaaa » */
+.date-empty {
+  display: flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 12px;
+  color: #b0b4bb;
+  cursor: pointer;
+}
 
 /* poignée de glisser */
 .col-handle { width: 30px; }
@@ -289,6 +333,7 @@ tr:hover .handle { color: var(--text-2); }
 .days-badge.green { color: var(--success); background: var(--success-bg); }
 .days-badge.orange { color: var(--warn); background: var(--warn-bg); }
 .days-badge.red { color: var(--danger); background: var(--danger-bg); }
+.days-badge.muted { color: var(--muted, #9aa0a6); background: transparent; }
 
 /* état pastille */
 .col-status { width: 150px; }
@@ -301,16 +346,22 @@ tr:hover .handle { color: var(--text-2); }
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
-  border: 1px solid var(--hairline);
-  color: var(--text-2);
-  background: #fff;
+  border: 1px solid transparent;
   white-space: nowrap;
+  /* défaut = gris doux (statut inconnu / non renseigné) */
+  color: var(--text-3);
+  background: #eef0f2;
 }
-.status-pill.s-atraiter { color: var(--text-2); }
-.status-pill.s-attente { color: var(--warn); background: var(--warn-bg); border-color: transparent; }
-.status-pill.s-valide { color: var(--success); background: var(--success-bg); border-color: transparent; }
-.status-pill.s-bloque { color: var(--danger); background: var(--danger-bg); border-color: transparent; }
-.status-pill.s-termine { color: var(--success); background: var(--success-bg); border-color: transparent; }
+/* Vert → validé / terminé */
+.status-pill.s-valide,
+.status-pill.s-termine { color: var(--success); background: var(--success-bg); }
+/* Ambre → en attente (à traiter, en attente client) */
+.status-pill.s-atraiter,
+.status-pill.s-attente { color: var(--warn); background: var(--warn-bg); }
+/* Rouge doux → bloqué */
+.status-pill.s-bloque { color: var(--danger); background: var(--danger-bg); }
+/* Gris clair → à définir / non renseigné */
+.status-pill.placeholder { color: #9aa0a6; background: #f2f3f5; }
 
 /* colonnes largeurs */
 .col-qty { width: 90px; }
@@ -323,16 +374,20 @@ tr:hover .handle { color: var(--text-2); }
 /* suppression */
 .col-del { width: 36px; }
 .del-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 0;
   background: transparent;
   color: var(--text-3);
   cursor: pointer;
   opacity: 0;
-  font-size: 15px;
   width: 36px;
   height: 40px;
+  padding: 0;
   transition: opacity 0.12s ease, color 0.12s ease;
 }
+.del-btn svg { display: block; }
 tr:hover .del-btn { opacity: 1; }
 .del-btn:hover { color: var(--danger); }
 

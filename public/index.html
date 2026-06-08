@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Atelier OLDA — cockpit</title>
+  <title>Planning OLDA</title>
   <link rel="stylesheet" href="styles.css" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>▦</text></svg>" />
 </head>
@@ -12,8 +12,7 @@
     <!-- Sidebar = pipeline -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-head">
-        <span class="brand">Atelier OLDA</span>
-        <span class="brand-sub">cockpit des demandes</span>
+        <span class="brand">Planning OLDA</span>
       </div>
       <nav class="stages" id="stages" aria-label="Étapes du pipeline"></nav>
     </aside>
@@ -22,10 +21,10 @@
     <main class="work">
       <header class="work-head">
         <div class="work-title">
-          <h1 id="stageTitle">Demande</h1>
+          <h1 id="stageTitle">Commande</h1>
           <span class="work-count" id="stageCount"></span>
         </div>
-        <button class="btn-primary" id="btnNew" type="button">+ Nouvelle demande</button>
+        <button class="btn-primary" id="btnNew" type="button">+ Nouvelle commande</button>
       </header>
 
       <div class="grid-wrap">
@@ -49,7 +48,7 @@
           </thead>
           <tbody id="rows"></tbody>
         </table>
-        <div class="empty" id="empty" hidden>Aucune demande à cette étape.</div>
+        <div class="empty" id="empty" hidden>Aucune commande à cette étape.</div>
       </div>
     </main>
   </div>

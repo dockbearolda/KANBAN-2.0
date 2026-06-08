@@ -28,7 +28,7 @@ function basicAuth(req, res, next) {
     // L'identifiant est ignoré, seul le mot de passe partagé compte.
     if (password === APP_PASSWORD) return next();
   }
-  res.set('WWW-Authenticate', 'Basic realm="Atelier OLDA", charset="UTF-8"');
+  res.set('WWW-Authenticate', 'Basic realm="Planning OLDA", charset="UTF-8"');
   return res.status(401).send('Authentification requise.');
 }
 
@@ -221,7 +221,7 @@ app.patch('/api/requests/:id', asyncH(async (req, res) => {
   params.push(req.params.id);
   const query = `UPDATE requests SET ${sets.join(', ')} WHERE id = $${i} RETURNING *`;
   const { rows } = await pool.query(query, params);
-  if (rows.length === 0) return res.status(404).json({ error: 'Demande introuvable' });
+  if (rows.length === 0) return res.status(404).json({ error: 'Commande introuvable' });
   broadcast({ kind: 'update', stages: [rows[0].stage] });
   res.json(rows[0]);
 }));
@@ -229,7 +229,7 @@ app.patch('/api/requests/:id', asyncH(async (req, res) => {
 // DELETE /api/requests/:id
 app.delete('/api/requests/:id', asyncH(async (req, res) => {
   const { rowCount } = await pool.query('DELETE FROM requests WHERE id = $1', [req.params.id]);
-  if (rowCount === 0) return res.status(404).json({ error: 'Demande introuvable' });
+  if (rowCount === 0) return res.status(404).json({ error: 'Commande introuvable' });
   broadcast({ kind: 'delete' });
   res.status(204).end();
 }));
@@ -246,7 +246,7 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.ht
 init()
   .then(() => {
     app.listen(PORT, () => {
-      console.log(`Atelier OLDA — cockpit en écoute sur le port ${PORT}`);
+      console.log(`Planning OLDA — en écoute sur le port ${PORT}`);
       if (!APP_PASSWORD) console.log('⚠  APP_PASSWORD non défini : accès ouvert (mode dev).');
     });
   })

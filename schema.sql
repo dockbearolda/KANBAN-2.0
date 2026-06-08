@@ -1,4 +1,4 @@
--- Atelier OLDA — schéma de base
+-- Planning OLDA — schéma de base
 -- Extension nécessaire pour gen_random_uuid()
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 

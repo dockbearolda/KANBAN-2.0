@@ -1,7 +1,7 @@
 {
-  "name": "atelier-olda-cockpit",
+  "name": "planning-olda",
   "version": "1.0.0",
-  "description": "Cockpit de gestion des demandes — Atelier OLDA",
+  "description": "Planning OLDA",
   "type": "commonjs",
   "main": "server.js",
   "scripts": {
