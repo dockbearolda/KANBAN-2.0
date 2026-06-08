@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Atelier OLDA — cockpit</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>▦</text></svg>" />
+</head>
+<body>
+  <div class="app">
+    <!-- Sidebar = pipeline -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-head">
+        <span class="brand">Atelier OLDA</span>
+        <span class="brand-sub">cockpit des demandes</span>
+      </div>
+      <nav class="stages" id="stages" aria-label="Étapes du pipeline"></nav>
+    </aside>
+
+    <!-- Zone de travail -->
+    <main class="work">
+      <header class="work-head">
+        <div class="work-title">
+          <h1 id="stageTitle">Demande</h1>
+          <span class="work-count" id="stageCount"></span>
+        </div>
+        <button class="btn-primary" id="btnNew" type="button">+ Nouvelle demande</button>
+      </header>
+
+      <div class="grid-wrap">
+        <table class="grid" id="grid">
+          <thead>
+            <tr>
+              <th class="col-handle" aria-label="Glisser"></th>
+              <th class="col-priority sortable" data-sort="priority">Priorité</th>
+              <th class="col-type sortable" data-sort="client_type">Type</th>
+              <th class="col-company sortable" data-sort="billing_company">Société à facturer</th>
+              <th class="col-ref sortable" data-sort="contact_referent">Référent</th>
+              <th class="col-qty sortable num" data-sort="quantity">Quantité</th>
+              <th class="col-product sortable" data-sort="product">Produits</th>
+              <th class="col-value sortable num" data-sort="project_value">Valeur du projet</th>
+              <th class="col-desc sortable" data-sort="description">Description du projet</th>
+              <th class="col-deadline sortable" data-sort="deadline">Échéance</th>
+              <th class="col-days sortable" data-sort="days">Jours restant</th>
+              <th class="col-status sortable" data-sort="status">État</th>
+              <th class="col-del" aria-label=""></th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+        <div class="empty" id="empty" hidden>Aucune demande à cette étape.</div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Liste des statuts pour les pastilles « État » -->
+  <datalist id="statusOptions">
+    <option value="À traiter"></option>
+    <option value="En attente client"></option>
+    <option value="Validé"></option>
+    <option value="Bloqué"></option>
+    <option value="Terminé"></option>
+  </datalist>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
