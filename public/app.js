@@ -1010,6 +1010,178 @@ function startRealtime() {
   document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); });
 }
 
+// --- Recherche : palette de commandes (⌘K) ---------------------------------
+const $searchTrigger = document.getElementById('searchTrigger');
+const SEARCH_FIELDS = ['billing_company', 'contact_referent', 'product', 'description', 'contact_phone', 'contact_email'];
+
+(function () {
+  const kbd = document.getElementById('searchKbd');
+  const isMac = /Mac|iPhone|iPad/.test(navigator.platform || '') || /Mac/.test(navigator.userAgent || '');
+  if (kbd) kbd.textContent = isMac ? '⌘K' : 'Ctrl K';
+})();
+
+function fold(s) {
+  return String(s == null ? '' : s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+function highlightMatch(text, q) {
+  const t = String(text == null ? '' : text);
+  if (!q) return escapeHtml(t);
+  const i = t.toLowerCase().indexOf(q.toLowerCase());
+  if (i < 0) return escapeHtml(t);
+  return escapeHtml(t.slice(0, i)) + '<mark>' + escapeHtml(t.slice(i, i + q.length)) + '</mark>' + escapeHtml(t.slice(i + q.length));
+}
+
+let searchState = null;
+
+function closeSearch() {
+  if (!searchState) return;
+  document.removeEventListener('keydown', onSearchKeydown, true);
+  const bd = searchState.backdrop;
+  bd.classList.remove('open');
+  setTimeout(() => bd.remove(), 180);
+  searchState = null;
+}
+
+async function openSearch() {
+  if (searchState) { searchState.input.focus(); return; }
+  const backdrop = document.createElement('div');
+  backdrop.className = 'cmdk-backdrop';
+  backdrop.innerHTML = `
+    <div class="cmdk-panel" role="dialog" aria-modal="true" aria-label="Recherche de commandes">
+      <div class="cmdk-head">
+        <svg class="cmdk-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input class="cmdk-input" type="text" placeholder="Rechercher — société, référent, produit, contact…" autocomplete="off" autocapitalize="off" spellcheck="false" />
+        <kbd class="cmdk-esc">Esc</kbd>
+      </div>
+      <div class="cmdk-list" role="listbox"></div>
+      <div class="cmdk-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> naviguer</span>
+        <span><kbd>↵</kbd> ouvrir</span>
+        <span><kbd>esc</kbd> fermer</span>
+        <span class="cmdk-count"></span>
+      </div>
+    </div>`;
+  document.body.appendChild(backdrop);
+  const input = backdrop.querySelector('.cmdk-input');
+  const list = backdrop.querySelector('.cmdk-list');
+  const countEl = backdrop.querySelector('.cmdk-count');
+  searchState = { backdrop, input, list, countEl, results: [], sel: 0, all: null };
+
+  backdrop.addEventListener('pointerdown', (e) => { if (e.target === backdrop) closeSearch(); });
+  input.addEventListener('input', () => runSearch(input.value));
+  document.addEventListener('keydown', onSearchKeydown, true);
+
+  requestAnimationFrame(() => backdrop.classList.add('open'));
+  input.focus();
+  renderSearch('');
+
+  try {
+    const all = await api('GET', '/api/requests');
+    if (searchState) { searchState.all = all; runSearch(input.value); }
+  } catch (_) {
+    if (searchState) searchState.list.innerHTML = '<div class="cmdk-empty">Erreur de chargement.</div>';
+  }
+}
+
+function runSearch(qRaw) {
+  if (!searchState) return;
+  const q = (qRaw || '').trim();
+  const all = searchState.all || [];
+  let results = [];
+  if (q) {
+    const fq = fold(q);
+    results = all.filter((r) => SEARCH_FIELDS.some((f) => fold(r[f]).includes(fq))).slice(0, 50);
+  }
+  searchState.results = results;
+  searchState.sel = 0;
+  renderSearch(q);
+}
+
+function renderSearch(q) {
+  if (!searchState) return;
+  const { list, countEl, results } = searchState;
+  if (!q) {
+    list.innerHTML = '<div class="cmdk-empty">Tapez pour rechercher dans toutes les étapes…</div>';
+    countEl.textContent = '';
+    return;
+  }
+  if (results.length === 0) {
+    list.innerHTML = '<div class="cmdk-empty">Aucune commande trouvée.</div>';
+    countEl.textContent = '0 résultat';
+    return;
+  }
+  countEl.textContent = results.length + (results.length > 1 ? ' résultats' : ' résultat');
+  list.innerHTML = results.map((r, i) => {
+    const title = r.billing_company || r.product || r.contact_referent || '(sans nom)';
+    const subParts = [];
+    if (r.contact_referent && r.billing_company) subParts.push(highlightMatch(r.contact_referent, q));
+    if (r.product) subParts.push(highlightMatch(r.product, q));
+    if (r.contact_phone) subParts.push(highlightMatch(r.contact_phone, q));
+    if (r.contact_email) subParts.push(highlightMatch(r.contact_email, q));
+    const sub = subParts.slice(0, 3).join(' · ');
+    return `<button class="cmdk-item${i === searchState.sel ? ' sel' : ''}" role="option" data-i="${i}">
+      <span class="cmdk-item-body">
+        <span class="cmdk-item-title">${highlightMatch(title, q)}</span>
+        ${sub ? `<span class="cmdk-item-sub">${sub}</span>` : ''}
+      </span>
+      <span class="cmdk-badge">${escapeHtml(STAGE_LABEL[r.stage] || r.stage)}</span>
+    </button>`;
+  }).join('');
+  [...list.querySelectorAll('.cmdk-item')].forEach((el) => {
+    const i = +el.dataset.i;
+    el.addEventListener('mousemove', () => setSel(i));
+    el.addEventListener('click', () => openResult(searchState.results[i]));
+  });
+  scrollSelIntoView();
+}
+
+function setSel(i) {
+  if (!searchState) return;
+  searchState.sel = i;
+  [...searchState.list.querySelectorAll('.cmdk-item')].forEach((el, idx) => el.classList.toggle('sel', idx === i));
+}
+function scrollSelIntoView() {
+  if (!searchState) return;
+  const el = searchState.list.querySelector('.cmdk-item.sel');
+  if (el) el.scrollIntoView({ block: 'nearest' });
+}
+
+function onSearchKeydown(e) {
+  if (!searchState) return;
+  if (e.key === 'Escape') { e.preventDefault(); closeSearch(); return; }
+  const n = searchState.results.length;
+  if (e.key === 'ArrowDown') { e.preventDefault(); if (n) { searchState.sel = (searchState.sel + 1) % n; setSel(searchState.sel); scrollSelIntoView(); } }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); if (n) { searchState.sel = (searchState.sel - 1 + n) % n; setSel(searchState.sel); scrollSelIntoView(); } }
+  else if (e.key === 'Enter') { e.preventDefault(); if (n) openResult(searchState.results[searchState.sel]); }
+}
+
+function openResult(r) {
+  if (!r) return;
+  const id = r.id, stage = r.stage;
+  closeSearch();
+  const flashRow = () => {
+    const tr = $rows.querySelector(`tr[data-id="${id}"]`);
+    if (!tr) return false;
+    tr.scrollIntoView({ block: 'center' });
+    tr.classList.remove('row-flash'); void tr.offsetWidth; tr.classList.add('row-flash');
+    setTimeout(() => tr.classList.remove('row-flash'), 1700);
+    return true;
+  };
+  if (stage === currentStage) {
+    flashRow();
+  } else {
+    selectStage(stage);
+    let tries = 0;
+    const tick = () => { if (flashRow()) return; if (tries++ < 25) setTimeout(tick, 80); };
+    setTimeout(tick, 120);
+  }
+}
+
+if ($searchTrigger) $searchTrigger.addEventListener('click', openSearch);
+document.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); openSearch(); }
+});
+
 // --- Init ------------------------------------------------------------------
 async function start() {
   renderSidebar();
