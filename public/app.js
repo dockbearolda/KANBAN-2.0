@@ -191,7 +191,11 @@ function applySortAndRender() {
     });
   }
   renderRows(data);
-  $stageCount.textContent = data.length ? `${data.length} commande${data.length > 1 ? 's' : ''}` : '';
+  const nMaq = data.filter((r) => MAQUETTE_STATUSES.includes(r.status)).length;
+  const base = data.length ? `${data.length} commande${data.length > 1 ? 's' : ''}` : '';
+  $stageCount.innerHTML = base
+    ? escapeHtml(base) + (nMaq ? ` <span class="maq-count">· ${nMaq} maquette${nMaq > 1 ? 's' : ''}</span>` : '')
+    : '';
 }
 
 function cmpDeadline(a, b) {
@@ -842,12 +846,18 @@ function cellDays(r) {
 
 const STATUS_CLASS = {
   'À traiter': 's-atraiter',
+  'Maquette à faire': 's-maquette',
+  'Maquette à valider': 's-maquette-valid',
   'En attente client': 's-attente',
   'Validé': 's-valide',
   'Bloqué': 's-bloque',
   'Terminé': 's-termine',
 };
-const STATUS_OPTIONS = ['À traiter', 'En attente client', 'Validé', 'Bloqué', 'Terminé'];
+const STATUS_OPTIONS = ['À traiter', 'Maquette à faire', 'Maquette à valider', 'En attente client', 'Validé', 'Bloqué', 'Terminé'];
+
+// États « maquette » : mis en avant (pastille violette + compteur d'étape)
+// pour repérer d'un coup d'œil les maquettes à faire / à faire valider.
+const MAQUETTE_STATUSES = ['Maquette à faire', 'Maquette à valider'];
 
 function cellStatus(r) {
   const td = document.createElement('td');

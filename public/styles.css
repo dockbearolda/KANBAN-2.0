@@ -31,6 +31,10 @@
   --warn-bg: #fbf2e6;
   --danger: #e24b4a;
   --danger-bg: #fceceb;
+  --maquette: #7437d8;
+  --maquette-bg: #f3edfd;
+  --maquette-valid: #bb3aa4;
+  --maquette-valid-bg: #fbedf8;
 
   --radius: 7px;
   --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, sans-serif;
@@ -141,6 +145,7 @@ html, body {
 .work-title { display: flex; align-items: baseline; gap: 10px; }
 .work-title h1 { font-size: 18px; font-weight: 500; margin: 0; color: var(--text-1); }
 .work-count { font-size: 13px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.work-count .maq-count { color: var(--maquette); font-weight: 500; }
 
 .btn-primary {
   background: var(--accent);
@@ -645,6 +650,9 @@ tr:hover .handle { color: var(--text-2); }
 /* Ambre → en attente (à traiter, en attente client) */
 .status-pill.s-atraiter,
 .status-pill.s-attente { color: var(--warn); background: var(--warn-bg); }
+/* Violet → maquette à faire, fuchsia → maquette à faire valider par le client */
+.status-pill.s-maquette { color: var(--maquette); background: var(--maquette-bg); }
+.status-pill.s-maquette-valid { color: var(--maquette-valid); background: var(--maquette-valid-bg); }
 /* Rouge doux → bloqué */
 .status-pill.s-bloque { color: var(--danger); background: var(--danger-bg); }
 /* Gris clair → à définir / non renseigné */
