@@ -1215,14 +1215,13 @@ function updateSortArrows() {
   });
 }
 
-// --- Largeur des colonnes : réglage manuel + bouton automatique -------------
+// --- Largeur des colonnes : réglage manuel par catégorie --------------------
 // Chaque catégorie mémorise ses propres largeurs (localStorage, par appareil).
 // Tant qu'aucune colonne n'a été réglée à la main, la répartition reste celle
-// du navigateur. Le bouton « Colonnes auto » efface tous les réglages en 1 clic.
+// du navigateur.
 const COLW_KEY = 'olda_col_widths_v1';
 const COL_MIN = 36; // largeur plancher en px, toutes colonnes
 const $grid = document.getElementById('grid');
-const $btnAutoFit = document.getElementById('btnAutoFit');
 const COL_ELS = [...document.querySelectorAll('#grid colgroup col')];
 const COL_KEYS = COL_ELS.map((c) => c.dataset.col);
 
@@ -1301,15 +1300,6 @@ function attachColResizers() {
       window.addEventListener('pointerup', onUp);
       window.addEventListener('pointercancel', onUp);
     });
-  });
-}
-
-if ($btnAutoFit) {
-  $btnAutoFit.addEventListener('click', () => {
-    colWidths = {};
-    saveColWidths();
-    applyColWidths();
-    showToast('Largeur des colonnes remise en automatique pour toutes les catégories');
   });
 }
 

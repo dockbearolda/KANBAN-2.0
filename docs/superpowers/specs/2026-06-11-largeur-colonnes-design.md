@@ -4,9 +4,8 @@ Date : 2026-06-11
 
 ## Besoin
 
-Chaque catégorie de la sidebar affiche un tableau de commandes. L'utilisateur veut :
-1. régler manuellement la largeur de chaque colonne, catégorie par catégorie ;
-2. un bouton qui remet la taille en automatique pour toutes les catégories en 1 clic.
+Chaque catégorie de la sidebar affiche un tableau de commandes. L'utilisateur veut
+régler manuellement la largeur de chaque colonne, catégorie par catégorie.
 
 ## Approches envisagées
 
@@ -26,8 +25,8 @@ Chaque catégorie de la sidebar affiche un tableau de commandes. L'utilisateur v
   poste fixe) ont des tailles différentes, partager via le serveur serait nuisible.
 - **Mode automatique = absence de réglage** : tant qu'une catégorie n'a pas été
   réglée, le tableau garde la répartition native du navigateur (comportement
-  d'avant). Le bouton « Colonnes auto » efface tous les réglages d'un coup et
-  affiche un toast.
+  d'avant). Un bouton « Colonnes auto » de remise à zéro globale a été livré puis
+  retiré le jour même à la demande de l'utilisateur (jugé inutile).
 - **Premier drag** : les largeurs rendues sont figées sur les `<col>` (capture des
   `offsetWidth`), puis seule la colonne saisie bouge ; la largeur du tableau devient
   la somme des colonnes (défilement horizontal si besoin).
