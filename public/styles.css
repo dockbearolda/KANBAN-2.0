@@ -666,6 +666,46 @@ tr:hover .handle { color: var(--text-2); }
 .col-product { min-width: 150px; }
 .col-desc { min-width: 220px; }
 
+/* ------------------------------------------- Largeur des colonnes réglable */
+/* Mode manuel : le tableau suit exactement les largeurs posées sur les <col>
+   (table-layout fixed) ; sa largeur totale = somme des colonnes (cf. app.js). */
+.grid.manual-cols { table-layout: fixed; min-width: 0; }
+.grid.manual-cols thead th { overflow: hidden; text-overflow: ellipsis; }
+
+/* poignée de redimensionnement au bord droit de chaque en-tête */
+.col-resizer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 9px;
+  height: 100%;
+  cursor: col-resize;
+  touch-action: none;
+  z-index: 3;
+}
+.col-resizer::after {
+  content: '';
+  position: absolute;
+  top: 22%;
+  bottom: 22%;
+  right: 3px;
+  width: 2px;
+  border-radius: 2px;
+  background: #c7c7cc;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.grid thead th:hover .col-resizer::after { opacity: 1; }
+.col-resizer:hover::after,
+.col-resizer.active::after { background: var(--accent); opacity: 1; }
+body.col-resizing { user-select: none; }
+body.col-resizing * { cursor: col-resize !important; }
+
+/* tactile : zone de prise élargie */
+@media (pointer: coarse) {
+  .col-resizer { width: 18px; }
+}
+
 /* suppression */
 .col-del { width: 188px; white-space: nowrap; text-align: right; padding-right: 4px; }
 .send-btn {
@@ -984,8 +1024,11 @@ body.dragging-active * { cursor: grabbing !important; }
   /* on retire les colonnes interactives (poignée, contact/PDF, actions) */
   .col-handle, .col-del { display: none !important; }
 
-  /* tableau lisible à plat, sans interaction */
-  .grid { min-width: 0; width: 100%; font-size: 11px; }
+  /* tableau lisible à plat, sans interaction : on ignore les largeurs
+     manuelles d'écran pour laisser le papier se répartir automatiquement */
+  .grid, .grid.manual-cols { table-layout: auto !important; min-width: 0; width: 100% !important; font-size: 11px; }
+  .grid col { width: auto !important; }
+  .col-resizer { display: none !important; }
   .grid thead th { position: static; background: #f0f0f0 !important; border: 1px solid #bbb; padding: 5px 6px; }
   .grid thead th .arrow { display: none; }
   .grid tbody td { height: auto; border: 1px solid #ddd; }

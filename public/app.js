@@ -153,6 +153,7 @@ function selectStage(slug) {
   $stageTitle.textContent = STAGE_LABEL[slug];
   updateStageLink(slug);
   updateFiverrTool(slug);
+  applyColWidths();
   document.querySelectorAll('.stage').forEach((el) => {
     el.classList.toggle('active', el.dataset.slug === slug);
   });
@@ -1214,6 +1215,104 @@ function updateSortArrows() {
   });
 }
 
+// --- Largeur des colonnes : réglage manuel + bouton automatique -------------
+// Chaque catégorie mémorise ses propres largeurs (localStorage, par appareil).
+// Tant qu'aucune colonne n'a été réglée à la main, la répartition reste celle
+// du navigateur. Le bouton « Colonnes auto » efface tous les réglages en 1 clic.
+const COLW_KEY = 'olda_col_widths_v1';
+const COL_MIN = 36; // largeur plancher en px, toutes colonnes
+const $grid = document.getElementById('grid');
+const $btnAutoFit = document.getElementById('btnAutoFit');
+const COL_ELS = [...document.querySelectorAll('#grid colgroup col')];
+const COL_KEYS = COL_ELS.map((c) => c.dataset.col);
+
+let colWidths = {};
+try { colWidths = JSON.parse(localStorage.getItem(COLW_KEY) || '{}') || {}; } catch (_) { colWidths = {}; }
+
+function saveColWidths() {
+  try { localStorage.setItem(COLW_KEY, JSON.stringify(colWidths)); } catch (_) {}
+}
+
+// Applique les largeurs de l'étape courante, ou revient au mode automatique.
+// En mode manuel le tableau passe en table-layout fixed et sa largeur devient
+// la somme des colonnes : chaque poignée suit alors exactement le curseur.
+function applyColWidths() {
+  const w = colWidths[currentStage];
+  if (w) {
+    let sum = 0;
+    COL_ELS.forEach((col, i) => {
+      const px = Math.max(COL_MIN, Math.round(w[COL_KEYS[i]] || COL_MIN));
+      col.style.width = px + 'px';
+      sum += px;
+    });
+    $grid.classList.add('manual-cols');
+    $grid.style.width = sum + 'px';
+  } else {
+    COL_ELS.forEach((col) => { col.style.width = ''; });
+    $grid.classList.remove('manual-cols');
+    $grid.style.width = '';
+  }
+}
+
+// Premier réglage d'une étape : on fige les largeurs rendues par le navigateur
+// pour que seule la colonne saisie bouge, sans « saut » des autres.
+function ensureManualWidths() {
+  if (colWidths[currentStage]) return;
+  const w = {};
+  document.querySelectorAll('#grid thead th').forEach((th, i) => {
+    w[COL_KEYS[i]] = th.offsetWidth;
+  });
+  colWidths[currentStage] = w;
+  applyColWidths();
+}
+
+function attachColResizers() {
+  document.querySelectorAll('#grid thead th').forEach((th, i) => {
+    const key = COL_KEYS[i];
+    if (key === 'del') return; // colonne d'actions : pas de poignée
+    const h = document.createElement('span');
+    h.className = 'col-resizer';
+    h.title = 'glisser pour régler la largeur';
+    th.appendChild(h);
+    h.addEventListener('click', (e) => e.stopPropagation()); // ne pas déclencher le tri
+    h.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      e.preventDefault();
+      e.stopPropagation();
+      ensureManualWidths();
+      const startX = e.clientX;
+      const startW = colWidths[currentStage][key];
+      h.classList.add('active');
+      document.body.classList.add('col-resizing');
+      try { h.setPointerCapture(e.pointerId); } catch (_) {}
+      const onMove = (ev) => {
+        colWidths[currentStage][key] = Math.max(COL_MIN, Math.round(startW + ev.clientX - startX));
+        applyColWidths();
+      };
+      const onUp = () => {
+        window.removeEventListener('pointermove', onMove);
+        window.removeEventListener('pointerup', onUp);
+        window.removeEventListener('pointercancel', onUp);
+        h.classList.remove('active');
+        document.body.classList.remove('col-resizing');
+        saveColWidths();
+      };
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp);
+      window.addEventListener('pointercancel', onUp);
+    });
+  });
+}
+
+if ($btnAutoFit) {
+  $btnAutoFit.addEventListener('click', () => {
+    colWidths = {};
+    saveColWidths();
+    applyColWidths();
+    showToast('Largeur des colonnes remise en automatique pour toutes les catégories');
+  });
+}
+
 // --- Utilitaires -----------------------------------------------------------
 function formatMoney(v) {
   const n = Number(v);
@@ -1515,6 +1614,8 @@ if ($btnPrint) {
 // --- Init ------------------------------------------------------------------
 async function start() {
   renderSidebar();
+  attachColResizers();
+  applyColWidths();
   await loadCounts();
   $stageTitle.textContent = STAGE_LABEL[currentStage];
   updateStageLink(currentStage);
