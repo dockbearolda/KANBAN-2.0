@@ -58,9 +58,9 @@ async function init() {
   const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
   await pool.query(schema);
 
-  // Migration : colonnes contact ajoutées après coup sur les bases existantes
+  // Migration : colonnes ajoutées après coup sur les bases existantes
   // (CREATE TABLE IF NOT EXISTS n'ajoute pas de colonnes à une table déjà créée).
-  for (const col of ['contact_phone', 'contact_email']) {
+  for (const col of ['contact_phone', 'contact_email', 'color']) {
     try {
       await pool.query(`ALTER TABLE requests ADD COLUMN IF NOT EXISTS ${col} text`);
     } catch (_) { /* pg-mem local : colonnes déjà présentes via le schéma */ }
@@ -85,7 +85,7 @@ async function seed() {
   const samples = [
     {
       stage: 'demande', priority: 3, client_type: 'pro', billing_company: 'Brasserie du Coin',
-      contact_referent: 'Julie M.', quantity: 50, product: 'T-shirts DTF logo',
+      contact_referent: 'Julie M.', quantity: 50, product: 'T-shirts DTF logo', color: 'Noir',
       project_value: 850, description: 'Tee-shirts événement bière artisanale',
       deadline: inDays(3), status: 'À traiter', position: 1000,
     },
@@ -103,7 +103,7 @@ async function seed() {
     },
     {
       stage: 'devis_accepte', priority: 3, client_type: 'pro', billing_company: 'Mairie de Vic',
-      contact_referent: 'Service Com', quantity: 120, product: 'Tote bags sérigraphie',
+      contact_referent: 'Service Com', quantity: 120, product: 'Tote bags sérigraphie', color: 'Écru',
       project_value: 3200, description: 'Sacs marché de Noël', deadline: inDays(1),
       status: 'Validé', position: 1000,
     },
@@ -125,10 +125,10 @@ async function seed() {
     await pool.query(
       `INSERT INTO requests
         (stage, priority, client_type, billing_company, contact_referent, quantity,
-         product, project_value, description, deadline, status, position)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+         product, color, project_value, description, deadline, status, position)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
       [s.stage, s.priority, s.client_type, s.billing_company, s.contact_referent,
-       s.quantity, s.product, s.project_value, s.description, s.deadline, s.status, s.position],
+       s.quantity, s.product, s.color ?? null, s.project_value, s.description, s.deadline, s.status, s.position],
     );
   }
 }

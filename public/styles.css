@@ -707,7 +707,7 @@ body.col-resizing * { cursor: col-resize !important; }
 }
 
 /* suppression */
-.col-del { width: 188px; white-space: nowrap; text-align: right; padding-right: 4px; }
+.col-del { width: 216px; white-space: nowrap; text-align: right; padding-right: 4px; }
 .send-btn {
   display: inline-flex;
   align-items: center;
@@ -974,7 +974,7 @@ body.dragging-active * { cursor: grabbing !important; }
   .del-btn,
   .dup-btn { width: 38px; }
   .send-btn { height: 34px; font-size: 13px; }
-  .col-del { width: 210px; }
+  .col-del { width: 248px; }
 
   /* étapes de la sidebar : zones cliquables plus généreuses */
   .stage { padding: 13px 14px; }
@@ -1051,4 +1051,135 @@ body.dragging-active * { cursor: grabbing !important; }
   .type-pill, .status-pill, .days-badge { margin: 4px 6px; cursor: default; }
 
   .empty { display: none; }
+}
+
+/* =========================================================================
+   Dictée vocale — micro par ligne + popover (écoute / analyse / confirmation)
+   ========================================================================= */
+.voice-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  border: 0;
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+  opacity: 0;
+  width: 28px;
+  height: 40px;
+  padding: 0;
+  transition: opacity 0.12s ease, color 0.12s ease;
+}
+.voice-btn svg { display: block; }
+tr:hover .voice-btn { opacity: 1; }
+tr.is-draft .voice-btn { opacity: 1; color: var(--accent); } /* ligne vide : micro visible */
+.voice-btn:hover { color: var(--accent); }
+.voice-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: 6px; }
+
+.voice-pop {
+  position: fixed;
+  z-index: 1100;
+  width: 320px;
+  background: #fff;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.vp-head { display: flex; align-items: center; gap: 8px; min-height: 18px; }
+.vp-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.vp-head.error .vp-title { color: var(--danger); }
+
+/* pastille rouge « enregistrement » */
+.vp-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--danger);
+  flex-shrink: 0;
+  animation: vpPulse 1.3s ease-in-out infinite;
+}
+@keyframes vpPulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(226, 75, 74, 0.35); }
+  50% { opacity: 0.65; box-shadow: 0 0 0 7px rgba(226, 75, 74, 0); }
+}
+
+/* spinner d'analyse */
+.vp-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--hairline);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  flex-shrink: 0;
+  animation: vpSpin 0.8s linear infinite;
+}
+@keyframes vpSpin { to { transform: rotate(360deg); } }
+
+/* transcript en direct */
+.vp-transcript {
+  min-height: 64px;
+  max-height: 150px;
+  overflow-y: auto;
+  background: #f5f5f7;
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  padding: 9px 10px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--text-1);
+}
+.vp-interim { color: var(--text-3); }
+.vp-placeholder { color: #b0b4bb; }
+
+/* récapitulatif des champs extraits */
+.vp-fields { display: flex; flex-direction: column; gap: 4px; max-height: 250px; overflow-y: auto; }
+.vp-field {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 13px;
+  padding: 5px 9px;
+  background: #f8f8fa;
+  border-radius: 6px;
+}
+.vp-field-label { color: var(--text-3); flex-shrink: 0; }
+.vp-field-value { color: var(--text-1); font-weight: 500; text-align: right; overflow-wrap: anywhere; }
+
+.vp-msg { font-size: 13px; color: var(--text-1); line-height: 1.45; }
+
+.vp-actions { display: flex; justify-content: flex-end; gap: 6px; }
+.vp-btn {
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 7px 12px;
+  border-radius: 7px;
+  border: 1px solid var(--hairline);
+  background: #fff;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease, filter 0.12s ease;
+}
+.vp-btn:hover { color: var(--accent); border-color: var(--accent); }
+.vp-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.vp-btn.vp-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.vp-btn.vp-primary:hover { filter: brightness(1.05); color: #fff; }
+
+/* tablette / tactile : micro toujours visible, cibles plus grandes */
+@media (pointer: coarse) {
+  .voice-btn { opacity: 1 !important; width: 38px; }
+  .vp-btn { padding: 10px 15px; font-size: 14px; }
+  .vp-transcript { font-size: 15px; }
 }

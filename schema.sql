@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS requests (
   contact_email   text,
   quantity        int,
   product         text,
+  color           text,
   project_value   numeric(12,2),
   description     text,
   deadline        date,

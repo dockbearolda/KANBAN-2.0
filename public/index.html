@@ -37,6 +37,10 @@
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg>
         <span>Imprimer</span>
       </button>
+      <button class="btn-ghost btn-voice-global" id="btnVoice" type="button" aria-label="Dicter une nouvelle commande">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 11a7 7 0 0 1-14 0"/><path d="M12 18v4"/></svg>
+        <span>Commande vocale</span>
+      </button>
       <button class="btn-primary" id="btnNew" type="button">+ Nouvelle commande</button>
       </header>
 
@@ -67,6 +71,7 @@
             <col data-col="contact_referent" />
             <col data-col="quantity" />
             <col data-col="product" />
+            <col data-col="color" />
             <col data-col="project_value" />
             <col data-col="description" />
             <col data-col="deadline" />
@@ -83,6 +88,7 @@
               <th class="col-ref sortable" data-sort="contact_referent">Référent</th>
               <th class="col-qty sortable num" data-sort="quantity">Quantité</th>
               <th class="col-product sortable" data-sort="product">Produits</th>
+              <th class="col-color sortable" data-sort="color">Couleur</th>
               <th class="col-value sortable num" data-sort="project_value">Valeur du projet</th>
               <th class="col-desc sortable" data-sort="description">Description du projet</th>
               <th class="col-deadline sortable" data-sort="deadline">Échéance</th>
